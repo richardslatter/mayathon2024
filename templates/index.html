@@ -1,0 +1,197 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Mayathon 2024</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            margin: 0;
+            padding: 0;
+            background-color: #f4f4f4;
+            color: #333333;
+        }
+        h1, h2, p {
+            text-align: center;
+            margin-top: 20px;
+            font-size: 18px;
+            font-weight: bold;
+            color: #000000;
+        }
+        h2 {
+            font-size: 12px;
+        }
+        .athlete-card {
+            background-color: #ffffff;
+            border-radius: 10px;
+            margin: 20px auto;
+            box-shadow: 0 0 20px rgba(0, 0, 0, 0.1);
+            overflow: hidden;
+            width: 80%;
+        }
+        .athlete-info {
+            padding: 15px;
+        }
+        .athlete-header {
+            display: flex;
+            align-items: center;
+            padding-bottom: 10px;
+            border-bottom: 1px solid #ddd;
+            margin-bottom: 10px;
+        }
+        .left-section,
+        .middle-section,
+        .right-section {
+            flex-grow: 1;
+            display: flex;
+            align-items: center;
+        }
+
+        .left-section {
+            justify-content: flex-start;
+        }
+
+        .middle-section {
+            justify-content: center;
+        }
+
+        .right-section {
+            justify-content: flex-end;
+        }
+        .left-section,
+        .right-section {
+            flex-basis: 20%;
+        }
+        .place {
+            font-weight: bold;
+            font-size: 14px;
+            margin-right: 8px;
+        }
+        .profile-pic {
+            width: 24px;
+            height: 24px;
+            border-radius: 50%;
+        }
+        .name {
+            font-size: 16px;
+        }
+        .points {
+            font-size: 11px;
+            font-weight: bold;
+        }
+        .activity-data {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 5px;
+            font-size: 10px;
+        }
+        .activity-label {
+            font-weight: bold;
+        }
+        .first-place {
+            color: #ffcc00;
+        }
+        .second-place {
+            color: #808080;
+        }
+        .third-place {
+            color: #cd7f32;
+        }
+        /* Media query for ipads and bigger */
+        @media only screen and (min-width: 768px) {
+            h1 {
+                font-size: 36px;
+            }
+            h2 {
+                font-size: 20px;
+            }
+            .athlete-card {
+                width: 60%;
+            }
+            .place {
+                font-size: 36px;
+                margin-right: 18px;
+            }
+            .profile-pic {
+                width: 40px;
+                height: 40px;
+            }
+            .name {
+            font-size: 30px;
+            }
+            .points {
+            font-size: 18px;
+            }
+            .activity-data {
+            font-size: 18px;
+        }
+        /* Media query for desktop */
+        @media only screen and (min-width: 1000px) {
+            .athlete-card {
+                width: 40%;
+            }
+        }
+    </style>
+</head>
+<body>
+    <h1 id="countdown"></h1>
+    <h2>Example stats below based on last 20 activities</h2>
+    {% for member_id, data in total_points.items() %}
+        {% set member_data = members[member_id] %}
+        {% set activities = all_activities[member_id] %}
+        <div class="athlete-card">
+            <div class="athlete-info">
+                <div class="athlete-header">
+                    <div class="left-section">
+                        <span class="place {% if loop.index == 1 %}first-place{% elif loop.index == 2 %}second-place{% elif loop.index == 3 %}third-place{% else %}normal-place{% endif %}">#{{ loop.index }}</span>
+                        <img src="{{ member_data.profile_medium }}" alt="Profile Picture" class="profile-pic">
+                    </div>
+                    <div class="middle-section">
+                        <span class="name">{{ member_data.firstname }} {{ member_data.lastname }}</span>
+                    </div>
+                    <div class="right-section">
+                        <span class="points">{{ '%.2f' % data.total_points }} Pt</span>
+                    </div>
+                </div>
+                <div>
+                    <div class="activity-data">
+                        <div class="activity-label">Run/Walk  </div>
+                        <div>{{ '%.2f' % (data.run_walk_distance / 1000) }} km</div>
+                    </div>
+                    <div class="activity-data">
+                        <div class="activity-label">Ride  </div>
+                        <div>{{ '%.2f' % (data.ride_distance / 1000) }} km</div>
+                    </div>
+                    <div class="activity-data">
+                        <div class="activity-label">Swim  </div>
+                        <div>{{ '%.2f' % (data.swim_distance / 1000) }} km</div>
+                    </div>
+                </div>
+                
+            </div>
+        </div>
+    {% endfor %}
+
+    <script>
+        // Countdown timer function
+        function countdown() {
+            const now = new Date();
+            const targetDate = new Date("2024-05-01T00:01:00+10:00");
+            const timeDifference = targetDate - now;
+            const days = Math.floor(timeDifference / (1000 * 60 * 60 * 24));
+            const hours = Math.floor((timeDifference % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+            const minutes = Math.floor((timeDifference % (1000 * 60 * 60)) / (1000 * 60));
+            const seconds = Math.floor((timeDifference % (1000 * 60)) / 1000);
+
+            document.getElementById('countdown').textContent = `Mayathon begins: ${days}d ${hours}h ${minutes}m ${seconds}s`;
+        }
+
+        // Call the countdown function initially
+        countdown();
+
+        // Update the countdown every second
+        setInterval(countdown, 1000);
+    </script>
+</body>
+</html>
