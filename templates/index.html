@@ -3,6 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta property="og:image" content="https://cdn.vectorstock.com/i/500p/52/11/running-human-icon-vector-1965211.jpg" />
     <title>Mayathon 2024</title>
     <style>
         body {
@@ -20,6 +21,9 @@
             color: #000000;
         }
         h2 {
+            font-size: 12px;
+        }
+        p {
             font-size: 12px;
         }
         .athlete-card {
@@ -106,6 +110,9 @@
             h2 {
                 font-size: 20px;
             }
+            p {
+                font-size: 20px;
+            }
             .athlete-card {
                 width: 60%;
             }
@@ -136,7 +143,7 @@
 </head>
 <body>
     <h1 id="countdown"></h1>
-    <h2>Example stats below based on last 20 activities</h2>
+    <p>Scores update every 2 minutes</h1>
     {% for member_id, data in total_points.items() %}
         {% set member_data = members[member_id] %}
         {% set activities = all_activities[member_id] %}
@@ -177,14 +184,14 @@
         // Countdown timer function
         function countdown() {
             const now = new Date();
-            const targetDate = new Date("2024-05-01T00:01:00+10:00");
+            const targetDate = new Date("2024-06-01T00:00:00+10:00");
             const timeDifference = targetDate - now;
             const days = Math.floor(timeDifference / (1000 * 60 * 60 * 24));
             const hours = Math.floor((timeDifference % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
             const minutes = Math.floor((timeDifference % (1000 * 60 * 60)) / (1000 * 60));
             const seconds = Math.floor((timeDifference % (1000 * 60)) / 1000);
 
-            document.getElementById('countdown').textContent = `Mayathon begins: ${days}d ${hours}h ${minutes}m ${seconds}s`;
+            document.getElementById('countdown').textContent = `Mayathon ends: ${days}d ${hours}h ${minutes}m ${seconds}s`;
         }
 
         // Call the countdown function initially

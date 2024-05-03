@@ -71,22 +71,29 @@ from dotenv import load_dotenv
 import os
 import time
 from flask import Flask, render_template
+import pytz
+from datetime import datetime
 
 app = Flask(__name__)
 
 members = []
 all_activities = {}
 total_distances = {}
+pulling = True
 
 def refresh_access_token():
-    refresh_token = os.getenv("refresh_token")
-    client_id = 2
-    client_secret = "3bf7cfbe375675dd9329e9de56d046b4f02a186f"
-    url = f"http://www.strava.com/api/v3/oauth/internal/token/refresh?client_id={client_id}&client_secret={client_secret}&grant_type=refresh_token&refresh_token={refresh_token}"
-    response = requests.post(url)
-    data = response.json()
-    os.environ["access_token"] = data["access_token"]
-    os.environ["refresh_token"] = data["refresh_token"]
+    try:
+        refresh_token = os.getenv("refresh_token")
+        client_id = 2
+        client_secret = "3bf7cfbe375675dd9329e9de56d046b4f02a186f"
+        url = f"http://www.strava.com/api/v3/oauth/internal/token/refresh?client_id={client_id}&client_secret={client_secret}&grant_type=refresh_token&refresh_token={refresh_token}"
+        response = requests.post(url)
+        data = response.json()
+        os.environ["access_token"] = data["access_token"]
+        os.environ["refresh_token"] = data["refresh_token"]
+        print("Access token refreshed:", datetime.now(pytz.timezone('Australia/Brisbane')))
+    except Exception as e:
+        print("Error while refreshing access token:", e, datetime.now(pytz.timezone('Australia/Brisbane')))
 
 def get_members():
     global members
@@ -148,25 +155,30 @@ def get_activities_for_member(member_id):
     ride_distance = 0
     swim_distance = 0
 
-    for activity in activities:
-        filtered_activity = {
-            "id": activity["item"]["id"],
-            "name": activity["item"]["name"],
-            "type": activity["item"]["type"],
-            "distance": activity["item"]["distance"],
-            "start_date": activity["item"]["start_date"]
-        }
-        
-        # Categorize activities and calculate total distances for each category
-        if activity["item"]["type"] in ["Run", "Walk"]:
-            run_walk_distance += activity["item"]["distance"]
-        elif activity["item"]["type"] == "Ride":
-            ride_distance += activity["item"]["distance"]
-        elif activity["item"]["type"] == "Swim":
-            swim_distance += activity["item"]["distance"]
-        
-        filtered_activities.append(filtered_activity)
+    # Define the cutoff datetime in Brisbane timezone
+    brisbane_tz = pytz.timezone('Australia/Brisbane')
+    cutoff_datetime = brisbane_tz.localize(datetime(2024, 5, 1))
 
+    for activity in activities:
+        try:
+            activity_start_date = datetime.strptime(activity["item"]["start_date"], "%Y-%m-%dT%H:%M:%SZ")
+            # Convert activity start date to Brisbane timezone
+            activity_start_date = activity_start_date.replace(tzinfo=pytz.utc).astimezone(brisbane_tz)
+
+            # Check if the activity start date is after the cutoff datetime
+            if activity_start_date > cutoff_datetime:
+                filtered_activity = {
+                    "id": activity["item"]["id"],
+                    "name": activity["item"]["name"],
+                    "type": activity["item"]["type"],
+                    "distance": activity["item"]["distance"],
+                    "start_date": activity["item"]["start_date"]
+                }
+                
+                filtered_activities.append(filtered_activity)
+        except Exception as e:
+            print("Error during activities:", e, datetime.now(pytz.timezone('Australia/Brisbane')))
+        
     if member_id in all_activities:
         existing_activity_ids = {activity["id"] for activity in all_activities[member_id]}
         for activity in filtered_activities:
@@ -174,6 +186,18 @@ def get_activities_for_member(member_id):
                 all_activities[member_id].append(activity)
     else:
         all_activities[member_id] = filtered_activities
+
+    for activity in all_activities[member_id]:
+        try:
+            # Categorize activities and calculate total distances for each category
+                if activity["type"] in ["Run", "Walk"]:
+                    run_walk_distance += activity["distance"]
+                elif activity["type"] == "Ride":
+                    ride_distance += activity["distance"]
+                elif activity["type"] == "Swim":
+                    swim_distance += activity["distance"]
+        except Exception as e:
+            print("Error during filtering activities:", e, datetime.now(pytz.timezone('Australia/Brisbane')))
 
     # Update total distance for the member
     total_distance = sum(activity["distance"] for activity in all_activities[member_id])
@@ -188,6 +212,7 @@ def get_activities():
     global all_activities
     global members
     global total_distances
+    global pulling
     
     for member_id, _ in members.items():
         get_activities_for_member(member_id)
@@ -203,9 +228,12 @@ def run_flask():
     ssl_cert = 'certs/certificate.crt'
     ssl_key = 'certs/private.key'
 
-    # Run Flask app with HTTPS
-    app.run(host='0.0.0.0', port=443, ssl_context=(ssl_cert, ssl_key))
-
+    while True:
+        try:
+            app.run(host='0.0.0.0', port=443, ssl_context=(ssl_cert, ssl_key))
+        except Exception as e:
+            print("Error:", e, datetime.now(pytz.timezone('Australia/Brisbane')))
+            time.sleep(10)
 
 def main():
     load_dotenv()
@@ -226,13 +254,39 @@ def main():
         with open("data/total_distances.json", "r") as f:
             total_distances = json.load(f)
 
+    thread = threading.Thread(target=run_flask)
+    thread.daemon = True
+    thread.start()
+
+    backup_thread = threading.Thread(target=backup)
+    backup_thread.daemon = True
+    backup_thread.start()
+
+    while True:
+        if pulling:
+            try:
+                get_members()
+                get_activities()
+            except Exception as e:
+                print("Error during pulling:", e, datetime.now(pytz.timezone('Australia/Brisbane')))
+        print("Server running, Pulling:", pulling, datetime.now(pytz.timezone('Australia/Brisbane')))
+        time.sleep(120)
+
+def backup():
     while True:
         try:
-            get_members()
-            get_activities()
+            time.sleep(600)  # sleep 10 minutes
+            combined_data = {
+                "members": members,
+                "all_activities": all_activities,
+                "total_distances": total_distances
+            }
+            backup_time = datetime.now(pytz.timezone('Australia/Brisbane')).strftime("%Y-%m-%d_%H-%M-%S")
+            with open(f"backups/backup_{backup_time}.json", "w") as f:
+                json.dump(combined_data, f, indent=4)
+            print("Backup complete:", backup_time, datetime.now(pytz.timezone('Australia/Brisbane')))
         except Exception as e:
-            print("Error:", e)
-        time.sleep(300)
+            print("Error during backup:", e, datetime.now(pytz.timezone('Australia/Brisbane')))
 
 @app.route('/')
 def index():
@@ -241,8 +295,22 @@ def index():
     # Pass the sorted total distances and other global variables to the template
     return render_template('index.html', all_activities=all_activities, members=members, total_points=sorted_total_points)
 
+@app.route('/start')
+def start():
+    global pulling
+    pulling = True
+    return "Pulling started", 200
+
+@app.route('/stop')
+def stop():
+    global pulling
+    pulling = False
+    return "Pulling stopped", 200
+
+@app.route('/status')
+def status():
+    global pulling
+    return f"Pulling is {'running' if pulling else 'stopped'}", 200
+
 if __name__ == "__main__":
-    thread = threading.Thread(target=main)
-    thread.daemon = True
-    thread.start()
-    run_flask()
+    main()
