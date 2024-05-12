@@ -124,7 +124,7 @@ def get_activities_for_member(member_id):
     for activity in all_activities[member_id]:
         try:
             # Categorize activities and calculate total distances for each category
-                if activity["type"] in ["Run", "Walk"]:
+                if activity["type"] in ["Run", "Walk", "Hike"]:
                     run_walk_distance += activity["distance"]
                 elif activity["type"] == "Ride":
                     ride_distance += activity["distance"]

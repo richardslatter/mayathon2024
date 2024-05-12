@@ -142,6 +142,12 @@
     </style>
 </head>
 <body>
+    <div id="chart-container" style="display: none;">
+        <div class="flourish-embed flourish-bar-chart-race" data-src="visualisation/17811730"><script src="https://public.flourish.studio/resources/embed.js"></script></div>
+    </div>
+
+    <button id="toggle-chart-btn" onclick="toggleChart()">Show first week bar chart</button>
+
     <h1 id="countdown"></h1>
     <p>Scores update every 2 minutes</h1>
     {% for member_id, data in total_points.items() %}
@@ -199,6 +205,19 @@
 
         // Update the countdown every second
         setInterval(countdown, 1000);
+
+        function toggleChart() {
+        var chartContainer = document.getElementById('chart-container');
+        var button = document.getElementById('toggle-chart-btn');
+        
+        if (chartContainer.style.display === 'none') {
+            chartContainer.style.display = 'block';
+            button.textContent = 'Hide first week bar chart';
+        } else {
+            chartContainer.style.display = 'none';
+            button.textContent = 'Show first week bar chart';
+        }
+    }
     </script>
 </body>
 </html>
